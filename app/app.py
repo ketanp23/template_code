@@ -1,4 +1,5 @@
 from flask import Flask, request, Response 
+from flask_uploads import UploadSet, IMAGES, configure_uploads
 import jsonpickle
 import pickle
 from sklearn import preprocessing, svm
@@ -10,7 +11,22 @@ app = Flask(__name__)
 # Load the pickled data and store it in a global variable
 with open('finalized_model.sav', 'rb') as f:
     model = pickle.load(f)
-   
+
+
+# Configure the app to store uploaded files in the 'uploads' folder
+app.config['UPLOADS_DEFAULT_DEST'] = 'vol1'
+
+# Create an UploadSet for handling image uploads
+images = UploadSet('images', IMAGES)
+
+# Configure the Flask-Uploads extension
+configure_uploads(app, (images,))
+
+filename = ''
+
+
+
+
 
 
 @app.route('/api/test', methods=['GET'])
@@ -32,6 +48,23 @@ def process_form():
     data = model.predict([[float(data['testdata'])]])  
     data_str = ", ".join(str(x) for x in data)
     return data_str
+
+
+@app.route('/api/upload', methods=['POST'])
+def upload():
+    # Check if a file was uploaded
+    if 'image' not in request.files:
+        return 'No file uploaded', 400
+
+    # Save the uploaded file
+    filename = images.save(request.files['image'])
+    
+
+    # Return the filename of the saved file
+    return filename, 200
+
+
+
 
 
 if __name__ == "__main__":
